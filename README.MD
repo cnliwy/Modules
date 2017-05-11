@@ -144,6 +144,60 @@ android 组件化
 ###7、引入路由框架
      细心的同学可能会发现一个问题，那就是在app的MainActivity为了跳转引用了book和music两个组件的页面类BookActivity和MusicActivity。如果此时我将gradle.properties(Project Properties)里的isDebug设置为true，表示两个组件都是独立的application了，而app也不会再去依赖这两个Module，那么问题就来了，在NainActivity里引入的类将无法找到路径，从而导致报错。
      为了解决这个问题，达到组件间解耦的目的，我们引入一个开源的框架ActivityRouter。
+     1）在library的build.gradle里引入activityrouter:
+     compile 'com.github.mzule.activityrouter:activityrouter:1.2.2'
+     2)在app，book和music的build.gradle里分别引入activityrouter的编译组件
+      annotationProcessor 'com.github.mzule.activityrouter:compiler:1.1.7'
+     3）在app的AndroidManifest.xml里加入如下代码：
+     
+      <activity
+                 android:name="com.github.mzule.activityrouter.router.RouterActivity"
+                 android:theme="@android:style/Theme.NoDisplay">
+                 <intent-filter>
+                     <action android:name="android.intent.action.VIEW" />
+     
+                     <category android:name="android.intent.category.DEFAULT" />
+                     <category android:name="android.intent.category.BROWSABLE" />
+                       <!-- jump_scheme = web -->
+                     <data android:scheme="@string/jump_scheme" />
+                 </intent-filter>
+             </activity>
+     
+     4)在app,book和music各自的包下分别创建一个空类，在类名上方加入注解@Module("app")，如下：
+     
+     // 表示此类所在的Module的组件名称为app
+     @Module("app")
+     public class AppModule {
+     }
+     
+     5）在app所在的Module的Application类上增加注解：@Modules({"app","music","book"})
+     如果你没有重写Application类，那就新建一个吧...别忘了在app的AndroidManifest.xml里引入哦！
+     
+     6）配置页面类的跳转路径
+     此次先拿BookActivity试水吧，在类名上方增加注解：@Router("book")
+     
+     @Router("book")
+     public class BookActivity extends AppCompatActivity {
+     
+         @Override
+         protected void onCreate(Bundle savedInstanceState) {
+             super.onCreate(savedInstanceState);
+             setContentView(R.layout.book_activity_book);
+         }
+     }
+     
+     7）修改app的MainActivity下前往BookActivity页面的跳转方式，修改为：
+     
+      findViewById(R.id.btn_book).setOnClickListener(new View.OnClickListener() {
+                 @Override
+                 public void onClick(View v) {
+                     Routers.open(MainActivity.this, Uri.parse("web://book"));
+                 }
+             });
+       跳转路径的组成方式"web://book" = (AndroidManifest.xml里的jump_scheme值web) + :// + (页面Activity上增加的Router注解值book)
+     
+  ###8、最终幻想
+    ok!反正我是完美运行啊，这样app里页面访问组件类的页面就无需引入其类路径了，传值也可通过注解配置进行传递，activityrouter的传值使用详情大家还是百度一下吧，网上资料还是很多的。好了，整个组件化的简单使用就介绍到这里，具体的运用还是要仁者见仁智者见智，尽情的翱翔吧！该下班吃饭了，走起！
      
         
     
